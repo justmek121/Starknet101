@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- and it's easy to individually load additional languages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+
+    <script>hljs.highlightAll();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Web site created using create-react-app" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>Starknet 101: Starknet Tutorial of receiving and sending ETH in contract</title>
+    <style>
+        @font-face {
+            font-family: poppins;
+            src: url(Poppins-Black.ttf);
+        }
+
+        div,
+        li {
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div style="
+    max-width: 1200px;
+    margin: 0 auto;
+" id="root">
+        <h1 style="text-align:center;font-family: poppins;margin-top: 50px;">Starknet tutorial of receiving & sending
+            ETH in contract Cairo v1</h1>
+        <h3>In this tutorial I will show you how to make a cairo contract which can receive and distribute eth to others
+            addresses. We also cover Starknet.js to make a multicall which allow us approve ETH spending in the same
+            transaction! </h3>
+        <h3> 1. Setup the enviroment</h3>
+        In order to interact with Starknet and compile Cairo code, you need to install several tools. They are Starkli
+        and Scarb.<br><br>
+        First you will need to download Starkli
+        <pre><code class="language-bash">
+            <div>curl https://get.starkli.sh | sh</div>
+        </code></pre>
+        Then run this command to install it
+        <pre><code class="language-bash">
+            <div>starkliup</div>
+        </code></pre>
+        Now you will need install Scarb
+        <pre><code class="language-bash">
+            <div>curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh</div>
+        </code></pre>
+        Make sure 2 of them is installed by this command:
+        <pre><code class="language-bash">
+            <div>starkli --version</div>
+        </code></pre>
+        <pre><code class="language-bash">
+            <div>scarb --version</div>
+        </code></pre>
+        Export 2 variable about account and keystore for easy access. This is the file you gonna store your public
+        address & private key.
+        <pre><code class="language-bash">
+            <div>export STARKNET_ACCOUNT=~/.starkli-wallets/deployer/account.json</div>
+        </code></pre>
+        <pre><code class="language-bash">
+            <div>export STARKNET_KEYSTORE=~/.starkli-wallets/deployer/keystore.json</div>
+        </code></pre>
+        <h3> 2. ETH is an ERC20 token in Starknet</h3>
+        It's not like ETH chain or any others layer 2 which ETH is native token. In Starknet, ETH is just like another
+        ERC20 token. Before you want to spend it on any contract you will need to approve it first!
+        <h3> 3. import ERC20 interface</h3>
+        To work with ETH, you will need to import ERC20 interface.
+        <pre><code class="language-rust">
+            // we need to have the interface of the remote ERC20 contract defined to import the Dispatcher.
+            #[starknet::interface]
+            trait IERC20<TContractState> {
+                fn name(self: @TContractState) -> felt252;
+                fn symbol(self: @TContractState) -> felt252;
+                fn decimals(self: @TContractState) -> u8;
+                fn totalSupply(self: @TContractState) -> u256;
+                fn balanceOf(self: @TContractState, account: ContractAddress) -> u256;
+                fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
+                fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
+                fn transferFrom(
+                    ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+                ) -> bool;
+                fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
+            }
+        </code></pre>
+        Important note: in Cairo 1.0 the naming convention of function we using is camel case, it's not snake case like
+        previous version. For example: we using <b>transferFrom</b> not <b>transfer_from</b>.
+        <h3> 4. Receive and Sending ETH</h3>
+        In this example contract we writing a function with 3 parameters.<b>total</b> is the sum of ETH we gonna
+        send,<b>array_amount</b> is array ETH amount for each addresses,
+        <b>array_address</b> is array of addresses to send ETH.
+        <pre><code class="language-rust">
+            #[starknet::interface]
+            trait IStarknet101<TContractState> {
+            fn sendEth(ref self: TContractState, total: u256, array_amount: Array<u128>,array_address: Array<ContractAddress>);
+            }
+        </code></pre>
+        In the contructor of contract we will have 1 parameter which is address of token we working on. In this case it's is ETH, you can replace to any other ERC20 too.
+        <pre><code class="language-rust">
+            #[storage]
+            struct Storage {
+                // Counter variable
+                token: IERC20Dispatcher
+            }
+        
+            #[constructor]
+            fn constructor(ref self: ContractState, token: ContractAddress) {
+                self.token.write(IERC20Dispatcher { contract_address: token });
+            }
+        </code></pre>
+        Final step is implement the function. We will validate the data input then send ETH to each address. If any ETH leftover from the transaction, we gonna send it back to contract caller.
+        <pre><code class="language-rust">
+            #[external(v0)]
+            impl Starknet101 of super::IStarknet101<ContractState> {
+                fn sendEth(ref self: ContractState, total: u256, array_amount: Array<u128>,array_address: Array<ContractAddress>) {         
+                    let mut i: u32 = 0;   
+                    let caller = get_caller_address();
+                    let this = get_contract_address();
+                    let amount_len = array_amount.len();
+                    let address_len = array_address.len();
+                    assert(amount_len == address_len, 'WRONG ARRAY DATA'); //check if data is valid
+                    self.token.read().transferFrom(caller, this, total);
+                    loop {
+                      if i >= address_len { // Break condition
+                         break ();
+                      }
+                      // Sending to each address
+                      let my_u256:u256 = (*array_amount.at(i)).into();
+                     self.token.read().transfer(*array_address.at(i),my_u256);
+                     i = i + 1;
+                    };
+                    //we gonna send back the ETH if something leftover
+                     let current_balance:u256 = self.token.read().balanceOf(this);
+                     if (current_balance > 0){
+                        self.token.read().transfer(caller, current_balance);
+                     }
+                }
+            }
+            So we already completed our cairo contract, now we will move to Starknet.js to interact with the contract.
+        </code></pre>
+        <h3> 5. Using Multicall in Starknet.js</h3>
+        multicall allow us to execute multiple call in one transaction. In this example we will combine 2 call, first one to approve ETH contract spending and then call <b>sendETH</b> function to distribute token.
+        <pre><code class="language-js">
+            // make contract call
+            const multiCall = await provider.execute(
+              [
+                // Calling the first contract
+                {
+                  contractAddress: '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
+                  entrypoint: "approve",
+                  // approve 1 wei for bridge
+                  calldata: CallData.compile({
+                    spender: contractAddress,
+                    amount: cairo.uint256(listData.total),
+                  })
+                },
+                // Calling the second contract
+                {
+                  contractAddress: contractAddress,
+                  entrypoint: "sendEth",
+                  // transfer 1 wei to the contract address
+                  calldata: CallData.compile({
+                    total: cairo.uint256(listData.total),
+                    array_amount: listData.amountList,
+                    array_address: listData.addressList
+                  })
+                }
+              ]
+            )
+            await provider.waitForTransaction(multiCall.transaction_hash);
+        </code></pre>
+        For the complete code, for can visit my responsitory at this link <a href="google.com">github</a>
+    </div>
+
+</body>
+
+</html>
