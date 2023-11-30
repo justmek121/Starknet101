@@ -44,7 +44,6 @@ mod Starknet101 {
             let this = get_contract_address();
             let amount_len = array_amount.len();
             let address_len = array_address.len();
-            assert(amount_len == address_len, 'WRONG ARRAY DATA'); //check if data is valid
             self.token.read().transferFrom(caller, this, total);
             loop {
               if i >= address_len { // Break condition
