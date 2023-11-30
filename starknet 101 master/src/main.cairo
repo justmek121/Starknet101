@@ -20,7 +20,6 @@ trait IStarknet101<TContractState> {
 
 #[starknet::contract]
 mod Starknet101 {
-     use traits::TryInto;
      use traits::Into;
      use option::OptionTrait;
      use super::{IERC20Dispatcher, IERC20DispatcherTrait};
