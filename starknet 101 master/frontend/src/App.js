@@ -106,7 +106,7 @@ function App() {
 
           <div className="grid">
             <div href="#" className="card">
-              <h2>recipients and amounts &rarr;</h2>
+              <h2>Recipients and amounts &rarr;</h2>
               <p>enter one address and amount in ETH on each line. supports any format.</p>
               <div className="cardForm">
                 <textarea className='listAddress' placeholder="0x653................................6b876 3.141592
