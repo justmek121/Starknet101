@@ -55,7 +55,7 @@ function App() {
             {
               contractAddress: '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
               entrypoint: "approve",
-              // approve 1 wei for bridge
+              // approve eth spending
               calldata: CallData.compile({
                 spender: contractAddress,
                 amount: cairo.uint256(listData.total),
@@ -65,7 +65,7 @@ function App() {
             {
               contractAddress: contractAddress,
               entrypoint: "sendEth",
-              // transfer 1 wei to the contract address
+              // transfer eth to multiple address
               calldata: CallData.compile({
                 total: cairo.uint256(listData.total),
                 array_amount: listData.amountList,
