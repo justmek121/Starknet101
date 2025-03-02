@@ -26,7 +26,7 @@ async function makeRequest() {
       },
       data: JSON.stringify([{"code": "ON-QK8BGNKG"}]) // Convert the data-raw to JSON string
     });
-
+1
     console.log(response.data);
   } catch (error) {
     console.error('Error:', error.message);
