@@ -29,7 +29,7 @@ async function makeRequest() {
 
     console.log(response.data);
   } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
+    console.error('Error:', error.message);
   }
 }
 
