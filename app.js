@@ -1,6 +1,7 @@
 const axios = require('axios');
 async function makeRequest() {
   try {
+    console.log(11);
     const response = await axios({
       method: 'post', // curl defaults to GET unless data is provided, then POST
       url: 'https://orochi.network/onactive',
@@ -26,7 +27,7 @@ async function makeRequest() {
       },
       data: JSON.stringify([{"code": "ON-QK8BGNKG"}]) // Convert the data-raw to JSON string
     });
-1
+    
     console.log(response.data);
   } catch (error) {
     console.error('Error:', error.message);
