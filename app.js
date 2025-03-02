@@ -1,4 +1,4 @@
-const axios = require('axios');
+const {axios} = require('axios');
 async function makeRequest() {
   try {
     console.log(11);
